@@ -8,6 +8,5 @@ edition = "2021"
 [dependencies]
 clap = "3.2"
 clap_logger = "0.3"
-fern = "0.6"
 log = "0.4"
 miette = {version="5.3", features = ["fancy"]}
