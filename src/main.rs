@@ -4,10 +4,13 @@
 #![warn(clippy::expect_used)]
 mod args;
 
-use std::{fs::copy, path::PathBuf};
+use std::{
+	fs::{copy, remove_file},
+	path::PathBuf,
+};
 
 use clap::ArgMatches;
-use clap_logger::{info, ClapInitLogger};
+use clap_logger::{debug, info, ClapInitLogger};
 use_err!();
 
 #[macro_export]
@@ -57,23 +60,29 @@ fn main() -> Result<()> {
 		let mut new_name: String = get_path()?.to_string_lossy().into();
 
 		if let Some(p) = prefix {
-			let mut p = p.clone();
-			p.push_str(&new_name);
-			new_name = p.to_owned();
+			let mut out = p.clone();
+			out.push_str(&new_name);
+			new_name = out.to_owned();
 		}
 		let new_path: PathBuf = {
 			let mut out: PathBuf = get_parent(path.to_owned())?;
 			out.push(&new_name);
 			out
 		};
-		if m.is_present("dry") {
-			println!("{}", new_name);
+		let dry: bool = err!(m.try_contains_id("dry"), "Failed to get argument 'dry'")?;
+		info!("{} -> {}", path.display(), new_path.display());
+		if !dry {
+			err!(copy(path, new_path), "Failed to copy file")?;
 		} else {
-			info!("Copying {} to {}", path.display(), new_path.display());
-			if !err!(m.try_contains_id("dry"), "Failed to get argument 'pass'")? {
-				err!(copy(path, new_path), "Failed to copy file")?;
-				// remove_file(file);
-			}
+			println!("dry");
+			debug!("Skipped because of --dry.");
+		}
+
+		if !dry && !err!(m.try_contains_id("copy"), "Failed to get field 'copy'")? {
+			err!(remove_file(path), "Failed to remove file")?;
+		} else {
+			println!("--dry");
+			debug!("Skipped because of --dry or --copy.");
 		}
 	}
 	Ok(())

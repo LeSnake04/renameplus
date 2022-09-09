@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{err, use_err};
+use crate::use_err;
 use clap::{value_parser, Arg, ArgMatches, Command};
 use clap_logger::{ClapLoglevelArg, LevelFilter};
 use_err!();
