@@ -13,8 +13,9 @@ pub fn matches() -> ArgMatches {
 		.add_loglevel_arg(LevelFilter::Warn)
 		.arg(
 			Arg::new("prefix")
-				.value_parser(value_parser!(String))
+				.long("prefix")
 				.short('p')
+				.value_parser(value_parser!(String))
 				.value_name("PREFIX")
 				.required(false)
 				.help_heading("SIMPLE")
