@@ -44,16 +44,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
-name = "autorename"
-version = "0.1.0"
-dependencies = [
- "clap",
- "clap_logger",
- "miette",
- "trybuild",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -311,6 +301,16 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
+
+[[package]]
+name = "renameplus"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "clap_logger",
+ "miette",
+ "trybuild",
+]
 
 [[package]]
 name = "rustc-demangle"
