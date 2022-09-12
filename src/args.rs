@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::use_err;
-use clap::{value_parser, Arg, ArgMatches, Command};
+use clap::{value_parser, Arg, ArgMatches, Command, ValueHint};
 use clap_logger::{ClapLoglevelArg, LevelFilter};
 use_err!();
 
@@ -19,6 +19,7 @@ pub fn matches() -> ArgMatches {
 				.value_name("PREFIX")
 				.required(false)
 				.help_heading("SIMPLE")
+				.value_hint(ValueHint::Other)
 				.help("Prefix to be added to the file"),
 		)
 		.arg(
@@ -26,6 +27,7 @@ pub fn matches() -> ArgMatches {
 				.value_parser(value_parser!(PathBuf))
 				.multiple_values(true)
 				.value_name("FILE")
+				.value_hint(ValueHint::AnyPath)
 				.required(true)
 				.help("File(s)  to be renamed"),
 		)
@@ -52,6 +54,7 @@ pub fn matches() -> ArgMatches {
 				.long("suffix")
 				.short('s')
 				.value_name("SUFFIX")
+				.value_hint(ValueHint::Other)
 				.help_heading("SIMPLE")
 				.help("Attach text to files"),
 		)
@@ -60,6 +63,20 @@ pub fn matches() -> ArgMatches {
 				.long("fragile")
 				.short('f')
 				.help("Crash as soon as a error occurs"),
+		)
+		.arg(
+			Arg::new("ensure")
+				.long("ensure")
+				.help("Make sure everything will work before doing anything"),
+		)
+		.arg(
+			Arg::new("output-dir")
+				.value_parser(value_parser!(PathBuf))
+				.long("output-dir")
+				.short('o')
+				.value_name("DIRECTORY")
+				.value_hint(ValueHint::DirPath)
+				.help("Move files to this directory"),
 		)
 		.get_matches()
 }
