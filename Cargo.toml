@@ -2,16 +2,32 @@
 name = "renameplus"
 version = "0.1.0"
 edition = "2021"
+authors = ["LeSnake <dev.lesnake@posteo.de>"]
+description = "Rename tool with smart additional features (alternative to mv)"
+repository = "https://www.github.com/lesnake04/renameplus"
+license-file = "LICENSE.txt"
+categories = ["command-line-utilities"]
+keywords = ["mv", "unix" ]
 
+readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "3.2"
+clap = { version = "3.2", features = ["cargo"] }
 clap_logger = "0.3"
-miette = {version="5.3", features = ["fancy"]}
+fern = { version = "0.6", features = ["colored"] }
+log = "0.4"
+miette = { version = "5.3.0", features = ["fancy"] }
+owo-colors = "3.5.0"
+thiserror = "1.0.37"
 
 [dev-dependencies]
 trybuild = "1.0"
 
 [profile.release]
 strip = true
+# panic = "abort"
+lto = true
+
+[workspace]
+members = ["renameplus_gui"]

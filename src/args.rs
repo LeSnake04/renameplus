@@ -1,15 +1,15 @@
 use std::path::PathBuf;
 
 use crate::use_err;
-use clap::{value_parser, Arg, ArgMatches, Command, ValueHint};
+use clap::{
+	builder::EnumValueParser, command, value_parser, Arg, ArgMatches, PossibleValue, ValueHint,
+};
 use clap_logger::{ClapLoglevelArg, LevelFilter};
 use_err!();
 
 pub fn matches() -> ArgMatches {
-	Command::new("autorename")
-		.about("Tool to rename files")
+	command!()
 		.arg_required_else_help(true)
-		.author("LeSnake <dev.lesnake@posteo.de>")
 		.add_loglevel_arg(LevelFilter::Warn)
 		.arg(
 			Arg::new("prefix")
@@ -35,18 +35,21 @@ pub fn matches() -> ArgMatches {
 			Arg::new("dry")
 				.long("dry")
 				.short('d')
+				.help_heading("GENERAL")
 				.help("Dont perfrom the operations"),
 		)
 		.arg(
 			Arg::new("dirs")
 				.long("dirs")
 				.short('r')
+				.help_heading("GENERAL")
 				.help("Allow renaming of directories"),
 		)
 		.arg(
 			Arg::new("copy")
 				.long("copy")
 				.short('c')
+				.help_heading("GENERAL")
 				.help("Copy files instead of moving them"),
 		)
 		.arg(
@@ -65,18 +68,67 @@ pub fn matches() -> ArgMatches {
 				.help("Crash as soon as a error occurs"),
 		)
 		.arg(
-			Arg::new("ensure")
-				.long("ensure")
-				.help("Make sure everything will work before doing anything"),
+			Arg::new("undo-on-err")
+				.long("undo-on-err")
+				.short('u')
+				.conflicts_with("dry")
+				.help_heading("GENERAL")
+				.help("Undo previos actions if error ocours (implies fragile)"),
+		)
+		.arg(
+			Arg::new("on-conflict")
+				.long("on-conflict")
+				.short('C')
+				.help("What to do when target already exist")
+				.value_parser(EnumValueParser::<OnConflict>::new())
+				.value_hint(ValueHint::Other)
+				.default_value("skip"),
 		)
 		.arg(
 			Arg::new("output-dir")
 				.value_parser(value_parser!(PathBuf))
 				.long("output-dir")
 				.short('o')
+				.help_heading("GENERAL")
 				.value_name("DIRECTORY")
 				.value_hint(ValueHint::DirPath)
 				.help("Move files to this directory"),
 		)
+		.arg(
+			Arg::new("output-files")
+				.value_parser(value_parser!(PathBuf))
+				.long("output-files")
+				.short('O')
+				.multiple_values(true)
+				.value_hint(ValueHint::AnyPath)
+				.help("Files to output files"),
+		)
 		.get_matches()
+}
+
+#[derive(Debug, Clone)]
+pub enum OnConflict {
+	Overwrite,
+	Skip,
+	Ask,
+}
+
+impl Default for OnConflict {
+	fn default() -> Self {
+		Self::Skip
+	}
+}
+
+impl clap::ValueEnum for OnConflict {
+	fn to_possible_value<'a>(&self) -> Option<PossibleValue<'a>> {
+		Some(match self {
+			Self::Overwrite => PossibleValue::new("overwrite").help("Overwrite the file"),
+			Self::Skip => PossibleValue::new("skip").help("Skip file"),
+			Self::Ask => PossibleValue::new("ask").help("Ask every time"),
+		})
+	}
+
+	fn value_variants<'a>() -> &'a [Self] {
+		&[Self::Skip, Self::Ask, Self::Overwrite]
+	}
 }
