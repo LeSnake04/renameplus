@@ -1,162 +1,109 @@
+use std::path::PathBuf;
+
+use anyhow::{Context, Result};
+use flexi_logger::{LogSpecification, Logger};
+use iced::{
+	executor,
+	widget::{button, text, text_input, tooltip, Button, Column, Text},
+	window::Event as WinEvent,
+	Alignment, Application, Command, Event, Settings, Theme,
+};
+use itertools::Itertools;
+
 mod errors;
 
-use std::{
-	fmt::Display,
-	path::PathBuf,
-	time::{Duration, Instant},
-};
-
-use eframe::{
-	egui::{CentralPanel, DroppedFile, TopBottomPanel},
-	epaint::Color32,
-	run_native, App, NativeOptions,
-};
-use native_dialog::FileDialog;
-
-use crate::errors::gui::{GuiError as Error, GuiResult as Result};
-
-pub fn main() {
-	let options: NativeOptions = NativeOptions::default();
-	run_native(
-		"RenamePlus",
-		options,
-    Box::new(|_| {Box::new(MainUi::default()))
-	);
-
-#[derive(Default)]
-struct MainUi {
+#[derive(Debug, Default)]
+struct RenamePlusGui {
+	prefix: String,
+	suffix: String,
+	hovered: Option<PathBuf>,
 	files: Vec<PathBuf>,
-	dropped_files: Vec<DroppedFile>,
-	notifications: Vec<Notification>,
 }
 
-struct Notification {
-	text: String,
-	level: NotificationLevel,
-	start: Instant,
-	duration: Duration,
+// impl Default for RenamePlusGui {
+// 	fn default() -> Self {
+// 		Self {
+// 			prefix: "prefix...".into()
+// 			suffix: ""
+// 			files: Vec::new() }
+// 	}
+// }
+
+fn main() -> Result<()> {
+	Logger::with(
+		LogSpecification::env_or_parse("renameplus_gui=debug, off")
+			.context("Failed to parse logger config")?,
+	)
+	.start()
+	.context("Failed to init logger")?;
+	RenamePlusGui::run(Settings::with_flags(())).context("Faild to start gui")?;
+	Ok(())
 }
 
-impl Notification {
-	fn new(
-		text: impl Into<String>,
-		duration: Duration,
-		level: impl Into<NotificationLevel>,
-	) -> Self {
-		let text = text.into();
-		let level = level.into();
-		Self {
-			text,
-			start: Instant::now(),
-			duration,
-			level,
-		}
+#[derive(Debug, Clone)]
+enum Message {
+	Event(Event),
+	PrefixChanged(String),
+	SuffixChanged(String),
+}
+
+impl Application for RenamePlusGui {
+	type Executor = executor::Default;
+	type Message = Message;
+	type Theme = Theme;
+	type Flags = ();
+
+	fn new(_: Self::Flags) -> (Self, Command<Self::Message>) {
+		(Self::default(), Command::none())
 	}
-}
 
-#[derive(Debug, Clone, Copy)]
-enum NotificationLevel {
-	Info = 0,
-	Warn = 1,
-	Error = 2,
-}
-
-impl From<NotificationLevel> for Color32 {
-	fn from(input: NotificationLevel) -> Self {
-		match input {
-			NotificationLevel::Info => Color32::LIGHT_BLUE,
-			NotificationLevel::Warn => Color32::GOLD,
-			NotificationLevel::Error => Color32::RED,
-		}
+	fn subscription(&self) -> iced::Subscription<Self::Message> {
+		iced::subscription::events().map(Message::Event)
 	}
-}
 
-impl Display for NotificationLevel {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.write_str(match self {
-			NotificationLevel::Info => "Info",
-			NotificationLevel::Warn => "Warning",
-			NotificationLevel::Error => "Error",
-		})
+	fn theme(&self) -> Theme {
+		Theme::Dark
 	}
-}
 
-impl App for MainUi {
-	fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
-		TopBottomPanel::top("notification_panel").show(ctx, |ui| {
-			// let mut table = TableBuilder::new(ui);
-			for mut i in 0..self.notifications.len() {
-				let n: &Notification = self.notifications.get(i).unwrap();
-				// table.body(|mut body| {
-				// 	body.rows(18.0, self.notifications.len(), |i, mut row| {
-				// 		row.col(|ui: &mut eframe::egui::Ui| {
-				// 			ui.colored();
-				// 		});
-				// 	})
-				// });
-				if n.duration.as_millis() > n.start.elapsed().as_millis() {
-					ui.colored_label(n.level, format!("{}: {}", &n.level.to_string(), &n.text));
-				} else {
-					self.notifications.remove(i);
-					i -= 1;
-				}
+	fn title(&self) -> String {
+		"RenamePlus".to_string()
+	}
+
+	fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
+		match message {
+			Message::Event(Event::Window(WinEvent::FileDropped(p))) => {
+				self.files.push(p);
+				self.files = self.files.clone().into_iter().unique().collect();
 			}
-		});
-		CentralPanel::default().show(ctx, |ui| {
-			ui.label("drag and drop files into window to rename");
-			if ui.button("Open File").clicked() {
-				let mut files = FileDialog::new().show_open_multiple_file().unwrap();
-				if !files.is_empty() {
-					self.files.append(&mut files);
-				}
-			}
-			for i in 0..self.dropped_files.len() {
-				let f = &self.dropped_files.get(i).unwrap().clone();
-				match &f.path {
-					Some(p) => {
-						self.notify(
-							format!("Added Path {}", p.display()),
-							Duration::from_secs(5),
-							"i",
-						)
-						.unwrap();
-						self.files.push(p.to_owned());
-						self.dropped_files.swap_remove(i);
-					}
-					None => {
-						self.notify(
-							format!("Failed to find path to file {}", f.name),
-							Duration::from_secs(5),
-							"w",
-						)
-						.unwrap();
-						continue;
-					}
-				}
-			}
-		});
-		// Collect dropped files:
-		if !ctx.input().raw.dropped_files.is_empty() {
-			self.dropped_files = ctx.input().raw.dropped_files.clone();
+			Message::Event(Event::Window(WinEvent::FileHovered(p))) => self.hovered = Some(p),
+			// Reset hovered path
+			Message::Event(Event::Window(WinEvent::FilesHoveredLeft)) => self.hovered = None,
+			Message::PrefixChanged(p) => self.prefix = p,
+			Message::SuffixChanged(p) => self.suffix = p,
+			// Ignore all others events
+			Message::Event(_) => (),
 		}
+		Command::none()
+	}
+
+	fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
+		Column::new()
+			.align_items(Alignment::Center)
+			.push(tooltip(
+				text_input("PREFIX", &self.prefix, Message::PrefixChanged),
+				"File Prefix",
+				tooltip::Position::FollowCursor,
+			))
+			.push(tooltip(
+				text_input("SUFFIX", &self.suffix, Message::SuffixChanged),
+				"File suffix",
+				tooltip::Position::FollowCursor,
+			))
+			.push(Text::new(format!("Hovered: {:#?}", self.hovered)))
+			.push(Text::new(format!("Droped: {:#?}", self.files)))
+			.push(button(text("Run")))
+			.into()
 	}
 }
 
-impl MainUi {
-	fn notify(
-		&mut self,
-		msg: impl Into<String>,
-		duration: Duration,
-		level: impl AsRef<str>,
-	) -> Result<()> {
-		let level = match level.as_ref() {
-			"info" | "i" => NotificationLevel::Info,
-			"warning" | "warn" | "w" => NotificationLevel::Warn,
-			"error" | "e" => NotificationLevel::Error,
-			s => return Err(Error::InvalidNotificationLevel(s.to_string())),
-		};
-		self.notifications
-			.push(Notification::new(msg, duration, level));
-		Ok(())
-	}
-}
+// impl run

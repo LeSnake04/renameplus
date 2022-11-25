@@ -1,16 +1,12 @@
 use std::path::PathBuf;
 
-use crate::use_err;
 use clap::{
-	builder::EnumValueParser, command, value_parser, Arg, ArgMatches, PossibleValue, ValueHint,
+	builder::EnumValueParser, builder::PossibleValue, command, value_parser, Arg, ArgAction,
+	ArgMatches, ValueHint,
 };
-use clap_logger::{ClapLoglevelArg, LevelFilter};
-use_err!();
 
 pub fn matches() -> ArgMatches {
 	command!()
-		.arg_required_else_help(true)
-		.add_loglevel_arg(LevelFilter::Warn)
 		.arg(
 			Arg::new("prefix")
 				.long("prefix")
@@ -25,10 +21,10 @@ pub fn matches() -> ArgMatches {
 		.arg(
 			Arg::new("file")
 				.value_parser(value_parser!(PathBuf))
-				.multiple_values(true)
 				.value_name("FILE")
 				.value_hint(ValueHint::AnyPath)
 				.required(true)
+				.action(ArgAction::Append)
 				.help("File(s)  to be renamed"),
 		)
 		.arg(
@@ -36,6 +32,7 @@ pub fn matches() -> ArgMatches {
 				.long("dry")
 				.short('d')
 				.help_heading("GENERAL")
+				.action(ArgAction::SetTrue)
 				.help("Dont perfrom the operations"),
 		)
 		.arg(
@@ -43,6 +40,7 @@ pub fn matches() -> ArgMatches {
 				.long("dirs")
 				.short('r')
 				.help_heading("GENERAL")
+				.action(ArgAction::SetTrue)
 				.help("Allow renaming of directories"),
 		)
 		.arg(
@@ -50,6 +48,7 @@ pub fn matches() -> ArgMatches {
 				.long("copy")
 				.short('c')
 				.help_heading("GENERAL")
+				.action(ArgAction::SetTrue)
 				.help("Copy files instead of moving them"),
 		)
 		.arg(
@@ -65,12 +64,14 @@ pub fn matches() -> ArgMatches {
 			Arg::new("fragile")
 				.long("fragile")
 				.short('f')
+				.action(ArgAction::SetTrue)
 				.help("Crash as soon as a error occurs"),
 		)
 		.arg(
 			Arg::new("undo-on-err")
 				.long("undo-on-err")
 				.short('u')
+				.action(ArgAction::SetTrue)
 				.conflicts_with("dry")
 				.help_heading("GENERAL")
 				.help("Undo previos actions if error ocours (implies fragile)"),
@@ -99,7 +100,7 @@ pub fn matches() -> ArgMatches {
 				.value_parser(value_parser!(PathBuf))
 				.long("output-files")
 				.short('O')
-				.multiple_values(true)
+				.action(ArgAction::Append)
 				.value_hint(ValueHint::AnyPath)
 				.help("Files to output files"),
 		)
@@ -120,7 +121,7 @@ impl Default for OnConflict {
 }
 
 impl clap::ValueEnum for OnConflict {
-	fn to_possible_value<'a>(&self) -> Option<PossibleValue<'a>> {
+	fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
 		Some(match self {
 			Self::Overwrite => PossibleValue::new("overwrite").help("Overwrite the file"),
 			Self::Skip => PossibleValue::new("skip").help("Skip file"),
