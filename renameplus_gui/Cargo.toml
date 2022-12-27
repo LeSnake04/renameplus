@@ -7,10 +7,16 @@ edition = "2021"
 
 [dependencies]
 thiserror = "1.0"
-renameplus = {path = ".."}
+renameplus = {path = "..", version = "*"}
 native-dialog = "0.6"
-iced = { version = "0.5.2", features = ["default_system_font", "tokio"] }
+iced = { version = "0.6", features = ["default_system_font", "tokio"] }
 tokio = "1.22.0"
 anyhow = { version = "1.0.66", features = ["backtrace"] }
 flexi_logger = "0.24.1"
 itertools = "0.10.5"
+snake_helper = "0.1.0"
+log = "0.4.17"
+clap = "4.0.27"
+figment = { version = "0.10.8", features = ["env", "toml"] }
+serde = { version = "1.0.151", features = ["derive"] }
+iced_native = "0.7.0"

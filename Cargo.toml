@@ -14,16 +14,21 @@ readme = "README.md"
 
 [dependencies]
 anyhow = { version = "1.0.66", features = ["backtrace"] }
+bstr = "1.0.1"
 clap = { version = "4.0", features = ["cargo"] }
 dialoguer = "0.10.2"
+dirs = "4.0.0"
 # clap_logger = "0.3"
 fern = { version = "0.6", features = ["colored"] }
+figment = { version = "0.10.8", features = ["env", "toml"] }
 flexi_logger = "0.24.1"
 log = "0.4"
 # miette = { version = "5.3.0", features = ["fancy"] }
 owo-colors = "3.5.0"
+serde = {version = "1.0.151", features = ["derive"]}
 snake_helper = "0.1.0"
 thiserror = "1.0.37"
+toml = "0.5.10"
 
 [dev-dependencies]
 trybuild = "1.0"

@@ -100,9 +100,41 @@ pub fn matches() -> ArgMatches {
 				.value_parser(value_parser!(PathBuf))
 				.long("output-files")
 				.short('O')
+				.help_heading("GENERAL")
 				.action(ArgAction::Append)
 				.value_hint(ValueHint::AnyPath)
-				.help("Files to output files"),
+				.help("Files to output new files"),
+		)
+		.arg(
+			Arg::new("replace")
+				.long("replace")
+				.short('R')
+				.help_heading("GENERAL")
+				.value_parser(value_parser!(String))
+				.action(ArgAction::Append)
+				.value_hint(ValueHint::Other)
+				.help("Terms to search and replace"),
+		)
+		.arg(
+			Arg::new("sets")
+				.long("sets")
+				.short('S')
+				.action(ArgAction::Append)
+				.value_hint(ValueHint::Other)
+				.help("Sets of replacements to apply"),
+		)
+		.arg(
+			Arg::new("ignore-sets")
+				.long("ignore-sets")
+				.help("Ignore default set")
+				.action(ArgAction::Append),
+		)
+		.arg(
+			Arg::new("list-sets")
+				.long("list-sets")
+				.short('l')
+				.help("List avaiable sets")
+				.action(ArgAction::SetTrue),
 		)
 		.get_matches()
 }
