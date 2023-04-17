@@ -5,7 +5,7 @@ use anyhow::{anyhow, ensure, Context, Result};
 use log::debug;
 
 impl Rename {
-	pub fn new(m: clap::ArgMatches, config: Config) -> Result<Self> {
+	pub fn try_new(m: clap::ArgMatches, config: Config) -> Result<Self> {
 		debug!("Parsing input args");
 		let files: Vec<PathBuf> = m
 			.try_get_many::<PathBuf>("file")?
@@ -23,7 +23,13 @@ impl Rename {
 			let mut out = vec![];
 			if let Some(sets) = sets_opt {
 				for set in sets {
-					match config.sets.iter().position(|s| s.0.name == set) {
+					match config
+						.sets
+						.as_ref()
+						.context("Sets is None")?
+						.iter()
+						.position(|s| s.set.name == set)
+					{
 						Some(i) => out.push(i),
 						None => Err(anyhow!("Set \"{set}\" not found"))?,
 					}

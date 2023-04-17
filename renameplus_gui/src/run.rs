@@ -2,7 +2,7 @@ use crate::RenamePlusGui;
 
 impl RenamePlusGui {
 	pub fn do_rename(&self) {
-		self.data.rename().unwrap();
+		self.data.rename().expect("Rename Failed");
 	}
 	pub fn validate(&self) -> String {
 		let mut out: String = "".to_string();
@@ -13,13 +13,5 @@ impl RenamePlusGui {
 			out.push_str("No Changes Configured\n");
 		}
 		out
-	}
-}
-
-fn into_none_if<T>(cond: bool, obj: T) -> Option<T> {
-	if cond {
-		None
-	} else {
-		Some(obj)
 	}
 }

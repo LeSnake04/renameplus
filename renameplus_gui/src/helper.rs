@@ -3,28 +3,22 @@ use std::path::PathBuf;
 use anyhow::Result;
 use log::error;
 use native_dialog::{FileDialog, MessageDialog};
-use snake_helper::unwrap_or_print_err;
 
-use crate::{
-	replace::{ReplaceItem, ReplaceMessage},
-	RenamePlusGui,
-};
+use crate::{RenamePlusGui, ReplaceItem, SetUi};
 
 impl RenamePlusGui {
 	pub(super) fn folder_ask(&mut self, new_files: &mut Vec<PathBuf>) {
-		let mut dir_asked = false;
 		match FileDialog::new().show_open_multiple_file() {
 			Ok(mut new) => {
 				new.retain_mut(|path| {
 					if path.is_dir() && !self.data.dirs {
-						self.data.dirs = unwrap_or_print_err!(
-							MessageDialog::new()
-								.set_title("Folder Detected")
-								.set_text("You selected a folder, enable renaming folders?")
-								.show_confirm(),
-							false
-						);
-						dir_asked = true;
+						if let Ok(allow) = MessageDialog::new()
+							.set_title("Folder Detected")
+							.set_text("You selected a folder, enable renaming folders?")
+							.show_confirm()
+						{
+							self.data.dirs = allow
+						}
 						self.data.dirs
 					} else {
 						true
@@ -38,8 +32,8 @@ impl RenamePlusGui {
 	// fn new_replace(&mut self, search: impl Into<String>, replace: impl Into<String>) {
 	pub(super) fn new_replace(&mut self) {
 		self.data.push_replace("".to_string(), "".to_string());
-		let last = self.data.replace.last().unwrap();
-		self.replace_ui.push(ReplaceItem::new(&last.0, &last.1));
+		// let last = self.data.replace.last().unwrap();
+		self.replace_ui.push(ReplaceItem::new("", ""));
 	}
 	pub(super) fn any_changes(&mut self) {
 		self.changes = self
@@ -62,4 +56,28 @@ impl RenamePlusGui {
 		}
 		Ok(())
 	}
+	pub(super) fn reload_sets(&mut self) {
+		self.sets.clear();
+		for (i, set) in self
+			.data
+			.config
+			.sets
+			.as_ref()
+			.expect("no sets")
+			.iter()
+			.enumerate()
+		{
+			self.sets.push(SetUi::new(set, i));
+		}
+	}
+}
+
+pub fn error_log_dialog(e: String, title: impl Into<String> + 'static) {
+	let title = title.into();
+	MessageDialog::new()
+		.set_type(native_dialog::MessageType::Error)
+		.set_title(&title)
+		.set_text(&e)
+		.show_alert()
+		.expect("Failed to show error dialog");
 }

@@ -1,18 +1,23 @@
 #![warn(clippy::all)]
+#![warn(clippy::unwrap_used)]
 
 use anyhow::{Context, Result};
 use flexi_logger::Logger;
 use iced::{Application, Settings};
 use log::warn;
 
-pub use crate::gui::RenamePlusGui;
+pub use iced::widget::{column as icolumn, row as irow};
 
-pub mod file;
+pub use crate::gui::RenamePlusGui;
+pub use crate::presets::*;
+pub use crate::widgets::*;
+
 pub mod gui;
 pub mod helper;
-pub mod replace;
+pub mod presets;
 pub mod run;
 pub mod update;
+pub mod widgets;
 
 fn main() -> Result<()> {
 	Logger::try_with_env_or_str("renameplus_gui=debug, off")

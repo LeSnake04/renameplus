@@ -1,17 +1,17 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
-use iced::{window::Event as WinEvent, Event};
-use itertools::Itertools;
-use log::error;
-use native_dialog::{FileDialog, MessageDialog, MessageType};
-use snake_helper::unwrap_or_print_err;
-
-use crate::{
-	file::{FileItem, FileMessage},
-	replace::ReplaceMessage,
-	RenamePlusGui,
+use anyhow::{anyhow, Result};
+use iced::{
+	keyboard::{Event as KeyEvent, KeyCode},
+	window::Event as WinEvent,
+	Event,
 };
+use itertools::Itertools;
+use native_dialog::{FileDialog, MessageDialog, MessageType};
+use renameplus::{ErrorLogAnyhow, UsedReason};
+use snake_helper::{unwrap_or_print_err, unwrap_some_or};
+
+use crate::{FileItem, FileMessage, RenamePlusGui, ReplaceMessage, SetUiMessage};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -27,6 +27,9 @@ pub enum Message {
 	ToggleDirs(bool),
 	AddReplace,
 	ReplaceMessage(usize, ReplaceMessage),
+	ShowSetsSelect,
+	HideSetsSelect,
+	SetMessage(usize, SetUiMessage),
 }
 impl RenamePlusGui {
 	pub(super) fn do_update(&mut self, message: Message) {
@@ -51,10 +54,20 @@ impl RenamePlusGui {
 			);
 		}
 	}
-	fn do_update_inner(&mut self, message: Message, warns: &mut String) -> Result<()> {
+	fn do_update_inner(
+		&mut self,
+		message: Message,
+		warns: &mut String,
+	) -> Result<ErrorLogAnyhow<()>> {
+		let mut err_log = ErrorLogAnyhow::new();
 		let mut changed = false;
 		let mut new_files: Vec<PathBuf> = vec![];
 		match message {
+			Message::Event(Event::Keyboard(KeyEvent::KeyPressed {
+				key_code: KeyCode::Escape,
+				..
+			})) => self.sets_overlay = false,
+			Message::SetMessage(i, msg) => self.update_set(i, msg, &mut err_log),
 			Message::Event(Event::Window(WinEvent::FileDropped(p))) => {
 				new_files.push(p);
 			}
@@ -77,7 +90,7 @@ impl RenamePlusGui {
 			Message::SelectOutputDir => match FileDialog::new().show_open_single_dir() {
 				Ok(Some(new)) => self.data.output_dir = Some(new),
 				Ok(None) => warns.push_str("No dir selected"),
-				Err(e) => error!("Failed to get path: {}", e),
+				Err(e) => err_log += anyhow!("Failed to get path: {}", e),
 			},
 			Message::RemoveOutputDir => self.data.output_dir = None,
 			Message::FileMessage(i, file_message) => {
@@ -94,6 +107,8 @@ impl RenamePlusGui {
 				self.update_replace(i, msg);
 				changed = true
 			}
+			Message::ShowSetsSelect => self.sets_overlay = true,
+			Message::HideSetsSelect => self.sets_overlay = false,
 		}
 		if !new_files.is_empty() {
 			let mut new: Vec<FileItem> = vec![];
@@ -110,7 +125,7 @@ impl RenamePlusGui {
 			self.any_changes();
 			self.update_previews()?;
 		};
-		Ok(())
+		Ok(err_log)
 	}
 	pub(super) fn update_replace(&mut self, i: usize, msg: ReplaceMessage) {
 		match msg {
@@ -126,6 +141,51 @@ impl RenamePlusGui {
 				self.data.replace.remove(i);
 				self.replace_ui.remove(i);
 			}
+		}
+	}
+	pub(super) fn update_set(
+		&mut self,
+		i: usize,
+		msg: SetUiMessage,
+		err_log: &mut ErrorLogAnyhow<()>,
+	) {
+		let set_i = self.sets[i].index;
+		let sets = self.data.config.sets.as_mut().expect("no set");
+		let mut set = &mut sets[set_i];
+		let mut update = false;
+		let mut set_ui = &mut self.sets[i];
+		match msg {
+			SetUiMessage::Toggle(b) => {
+				let used = b.then_some(UsedReason::Manual);
+				set.used = used.clone();
+				set_ui.set.used = used;
+			}
+			SetUiMessage::Edit => match set.editable {
+				true => {
+					set_ui.edit = true;
+					todo!("Edit set");
+				}
+				false => *err_log += anyhow!("{} is not editable!", set.set.name),
+			},
+			SetUiMessage::ByDefault(b) => 'a: {
+				dbg!(b);
+				let default_sets =
+					unwrap_some_or!(self.data.config.default_sets.as_mut(), break 'a);
+				let default_set_i = default_sets
+					.iter()
+					.position(|s| s == &set.set.name)
+					.expect("Not found in default set");
+				set_ui.default = b;
+				match b {
+					true => default_sets.push(set.set.name.clone()),
+					false => {
+						default_sets.remove(default_set_i);
+					}
+				}
+			}
+		}
+		if update {
+			self.reload_sets();
 		}
 	}
 }

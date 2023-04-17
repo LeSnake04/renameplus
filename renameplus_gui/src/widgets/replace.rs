@@ -3,6 +3,8 @@ use iced::{
 	Element,
 };
 
+use crate::PresetDefault;
+
 #[derive(Debug)]
 pub struct ReplaceItem {
 	pub replace: String,
@@ -31,6 +33,7 @@ impl ReplaceItem {
 			text_input("REPLACE", &self.replace, ReplaceMessage::ChangeReplace),
 			button(text("X")).on_press(ReplaceMessage::Delete)
 		]
+		.preset_default()
 		.into()
 	}
 }

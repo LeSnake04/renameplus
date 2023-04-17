@@ -88,9 +88,9 @@ impl Rename {
 			do_replace(&mut new_name, search, replace)
 		}
 		for set_i in &self.replace_sets {
-			let set = &self.config.sets[*set_i];
-			for search in &set.0.search {
-				do_replace(&mut new_name, search, &set.0.replace)
+			let set = &self.config.sets.as_ref().context("Sets is None")?[*set_i];
+			for search in &set.set.search {
+				do_replace(&mut new_name, search, &set.set.replace)
 			}
 		}
 		let parent = self
