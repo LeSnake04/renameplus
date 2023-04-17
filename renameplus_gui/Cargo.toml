@@ -20,4 +20,5 @@ clap = "4.2.2"
 figment = { version = "0.10.8", features = ["env", "toml"] }
 serde = { version = "1.0.160", features = ["derive"] }
 iced_native = "0.10.1"
+error_log = { version = "0.1.2", features = ["native-dialog"] }
 # iced_aw = {git = "https://github.com/iced-rs/iced_aw", rev="193e3bd8e6de4d8ce14ac2f2767323574b8fc712"}
