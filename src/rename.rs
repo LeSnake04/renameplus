@@ -1,4 +1,5 @@
 use bstr::ByteSlice;
+use error_log::{return_ok, try_add, ErrorLogAnyhow};
 use format as f;
 use log::{error, info, warn};
 use snake_helper::{unwrap_or_print_err, unwrap_some_or};
@@ -88,7 +89,7 @@ impl Rename {
 			do_replace(&mut new_name, search, replace)
 		}
 		for set_i in &self.replace_sets {
-			let set = &self.config.sets.as_ref().context("Sets is None")?[*set_i];
+			let set = &self.config.sets[*set_i];
 			for search in &set.set.search {
 				do_replace(&mut new_name, search, &set.set.replace)
 			}
@@ -122,33 +123,33 @@ impl Rename {
 	pub fn push_replace(&mut self, search: impl Into<String>, replace: impl Into<String>) {
 		self.replace.push((search.into(), replace.into()))
 	}
-	pub fn rename(&self) -> Result<()> {
+	pub fn rename(&self) -> ErrorLogAnyhow<()> {
 		let mut history: Vec<RenameOut> = vec![];
-		let mut out: Result<()> = Ok(());
-
-		for (file, new_path) in self.preview()? {
+		let mut err = ErrorLogAnyhow::new();
+		if let Some(preview) = err.push_result(self.preview()) {
+		for (file, new_path) in preview {
 			let new_path = unwrap_some_or!(new_path, continue);
 			let curr_out = self.rename_file(&file, new_path);
 			match (curr_out, self.fragile, self.undo_on_err) {
 				// Cancel if error occured and --fragile set.
 				(Err(e), true, _) => {
-					out = Err(e);
-					break;
+					try_add!(Err(e), err);
 				}
 				// Print error if --fragile not set.
-				(Err(e), false, _) => error!("{:?}", e),
+				(Err(e), false, _) => err += e,
 				// Push result to $history if moved and --und_on_err set.
 				(Ok(r), _, true) => {
 					r.new_path.is_some().then(|| history.push(r));
 				}
 				_ => (),
 			}
+			}
 		}
-		if out.is_err() && self.undo_on_err {
-			for out in history {
-				let new_path = match out.new_path.context("Path not set") {
+			if self.undo_on_err && !err.entries().is_empty() {
+			for entry in history {
+				let new_path = match entry.new_path.context("Path not set") {
 					Err(f) => {
-						error!("{f}");
+						err.push_err(f);
 						continue;
 					}
 					//
@@ -157,14 +158,14 @@ impl Rename {
 				if let Err(e) = match self.copy {
 					true => std::fs::remove_file(new_path).context("Failed to remove file"),
 					false => {
-						std::fs::rename(new_path, out.original).context("Failed to rename file")
+						std::fs::rename(new_path, entry.original).context("Failed to rename file")
 					}
 				} {
 					error!("{}", e)
 				}
 			}
 		}
-		Ok(())
+		return_ok!((), err);
 	}
 	fn rename_file(&self, file: &PathBuf, mut new_path: PathBuf) -> Result<RenameOut> {
 		if new_path.exists() {

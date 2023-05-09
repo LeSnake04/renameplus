@@ -11,7 +11,8 @@ use iced::{
 	Alignment, Application, Color, Command, Theme,
 };
 
-use renameplus::{rename::Rename, Config, ErrorLogAnyhow, PrintMode};
+use error_log::{ErrorLogAnyhow, FormatMode};
+use renameplus::{rename::Rename, Config};
 
 #[derive(Debug, Default)]
 pub struct RenamePlusGui {
@@ -34,16 +35,12 @@ impl Application for RenamePlusGui {
 		let mut out = {
 			let mut err_log = ErrorLogAnyhow::<Config>::new();
 			let config = {
-				let config = err_log.push_result(Config::read());
-				if let Some(mut c) = config {
-					err_log
-						.prepend_errors(&mut c)
-						.join_on_display("\n\n")
-						.print_fn(|e| error_log_dialog(e, "Failed to parse config"))
-						.display_mode(PrintMode::Debug);
-					*err_log.ok_mut() = c.take_ok();
-				}
-				err_log.unwrap_or_display().expect("Failed to get config")
+				err_log
+					.append_entries(&mut Config::read())
+					.display_mode(FormatMode::Debug)
+					.delimiter("\n\n");
+				err_log.display_fn_native_dialog();
+				err_log.display_unwrap_or_default()
 			};
 			Self {
 				data: Rename {

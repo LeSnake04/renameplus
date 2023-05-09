@@ -23,13 +23,7 @@ impl Rename {
 			let mut out = vec![];
 			if let Some(sets) = sets_opt {
 				for set in sets {
-					match config
-						.sets
-						.as_ref()
-						.context("Sets is None")?
-						.iter()
-						.position(|s| s.set.name == set)
-					{
+					match config.sets.iter().position(|s| s.set.name == set) {
 						Some(i) => out.push(i),
 						None => Err(anyhow!("Set \"{set}\" not found"))?,
 					}

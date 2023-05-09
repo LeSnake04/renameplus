@@ -8,13 +8,12 @@ use figment::{
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::{ErrorLog, ErrorLogAnyhow};
+use error_log::{try_add, ErrorLogAnyhow};
 
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Config {
 	pub default_sets: Option<Vec<String>>,
-	/// ReplaceSet, Used, Editable
-	pub sets: Option<Vec<ReplaceSetData>>,
+	pub sets: Vec<ReplaceSetData>,
 }
 
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq, PartialOrd, Ord)]
@@ -85,27 +84,33 @@ impl Config {
 	}
 	fn is_set_default(&self, name: &str) -> Option<UsedReason> {
 		self.sets
-			.as_ref()?
 			.iter()
 			.any(|s| s.set.name == name)
 			.then_some(UsedReason::Default)
 	}
-	pub fn read() -> Result<ErrorLogAnyhow<Self>> {
-		let mut err_log = ErrorLog::new();
+	pub fn read() -> ErrorLogAnyhow<Self> {
+		let mut err_log = ErrorLogAnyhow::new();
 		let global_sets_dir = PathBuf::from("/etc/renameplus/sets.d");
 		let user_sets_dir = {
-			let mut out = dirs::config_dir().context("Failed to get config dir")?;
+			let mut out = try_add!(
+				dirs::config_dir().context("Failed to get config dir"),
+				err_log
+			);
 			out.push("renameplus");
 			out.push("sets.d");
 			out
 		};
 		if !user_sets_dir.exists() {
-			err_log +=
-				std::fs::create_dir_all(&user_sets_dir).context("Failed to create user sets.d");
+			err_log.push_result(
+				std::fs::create_dir_all(&user_sets_dir).context("Failed to create user sets.d"),
+			);
 		}
 		let global_config_path = "/etc/renameplus.toml";
 		let user_config_path: PathBuf = {
-			let mut out = dirs::config_dir().context("Failed to get config dir")?;
+			let mut out = try_add!(
+				dirs::config_dir().context("Failed to get config dir"),
+				err_log
+			);
 			out.push("renameplus");
 			out.push("config.toml");
 			out
@@ -133,8 +138,8 @@ impl Config {
 			err_log += conf.find_sets(&mut out, user_sets_dir, true);
 			out
 		};
-		conf.sets = Some(sets);
+		conf.sets = sets;
 		err_log.set_ok(conf);
-		Ok(err_log)
+		err_log
 	}
 }

@@ -2,7 +2,9 @@ use crate::RenamePlusGui;
 
 impl RenamePlusGui {
 	pub fn do_rename(&self) {
-		self.data.rename().expect("Rename Failed");
+		let mut out = self.data.rename();
+		out.display_fn_native_dialog();
+		out.display_unwrap();
 	}
 	pub fn validate(&self) -> String {
 		let mut out: String = "".to_string();

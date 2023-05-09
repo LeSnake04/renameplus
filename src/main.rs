@@ -29,9 +29,12 @@ fn main() -> Result<()> {
 	Logger::try_with_env_or_str("debug")
 		.context("Failed to init logger")?
 		.start()?;
-	let mut conf = Config::read()?;
+	let mut conf = Config::read();
 	let m: ArgMatches = args::matches();
-	conf.print_fn_log_error();
-	Rename::try_new(m, conf.unwrap_or_display_and_default())?.rename()?;
+	conf.display_fn_log();
+	Rename::try_new(m, conf.display_ok().unwrap_or(Config::default()))?
+		.rename()
+		.display_ok()
+		.context("Failed to rename")?;
 	Ok(())
 }
