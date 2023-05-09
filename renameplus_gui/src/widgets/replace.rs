@@ -1,5 +1,5 @@
 use iced::{
-	widget::{button, row as irow, text, text_input},
+	widget::{button, row, text, text_input},
 	Element,
 };
 
@@ -27,10 +27,10 @@ impl ReplaceItem {
 		}
 	}
 	pub fn view(&self) -> Element<'static, ReplaceMessage> {
-		irow![
-			text_input("SEARCH", &self.search, ReplaceMessage::ChangeSearch),
+		row![
+			text_input("SEARCH", &self.search).on_input(ReplaceMessage::ChangeSearch),
 			// tooltip(button(text("+")), "Add search", Position::FollowCursor),
-			text_input("REPLACE", &self.replace, ReplaceMessage::ChangeReplace),
+			text_input("REPLACE", &self.replace).on_input(ReplaceMessage::ChangeReplace),
 			button(text("X")).on_press(ReplaceMessage::Delete)
 		]
 		.preset_default()

@@ -58,15 +58,7 @@ impl RenamePlusGui {
 	}
 	pub(super) fn reload_sets(&mut self) {
 		self.sets.clear();
-		for (i, set) in self
-			.data
-			.config
-			.sets
-			.as_ref()
-			.expect("no sets")
-			.iter()
-			.enumerate()
-		{
+		for (i, set) in self.data.config.sets.iter().enumerate() {
 			self.sets.push(SetUi::new(set, i));
 		}
 	}

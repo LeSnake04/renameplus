@@ -1,6 +1,6 @@
-use crate::{irow, PresetDefault};
+use crate::PresetDefault;
 use iced::{
-	widget::{button, checkbox, text, Row},
+	widget::{button, checkbox, row, text, Row},
 	Element, Length,
 };
 use renameplus::{ReplaceSetData, UsedReason};
@@ -31,11 +31,11 @@ impl SetUi {
 	}
 	pub fn view(&self) -> Element<SetUiMessage> {
 		let edit: Row<SetUiMessage, _> = match self.set.editable {
-			false => irow![],
-			true => irow![button("Edit").on_press(SetUiMessage::Edit)],
+			false => row![],
+			true => row![button("Edit").on_press(SetUiMessage::Edit)],
 		};
 		let set = &self.set;
-		irow![
+		row![
 			checkbox(&set.set.name, set.used.is_some(), SetUiMessage::Toggle),
 			text(&self.set.set.description).width(Length::Fill),
 			edit,

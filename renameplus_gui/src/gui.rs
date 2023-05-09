@@ -1,13 +1,10 @@
 use std::path::PathBuf;
 
 pub use crate::update::Message;
-use crate::{helper::error_log_dialog, FileItem, PresetDefault, ReplaceItem, SetUi};
+use crate::{FileItem, PresetDefault, ReplaceItem, SetUi};
 use iced::{
 	executor,
-	widget::{
-		button, column as icolumn, row as irow, scrollable, text, text_input, toggler, tooltip,
-		Column,
-	},
+	widget::{button, column as col, row, scrollable, text, text_input, toggler, tooltip, Column},
 	Alignment, Application, Color, Command, Theme,
 };
 
@@ -114,9 +111,9 @@ impl Application for RenamePlusGui {
 				// icolumn![text("overlay")].into()
 				// })
 
-				icolumn![
+				col![
 					button("Add Files").on_press(Message::AddPaths),
-					irow![
+					row![
 						text(drop_hint),
 						text(match self.data.output_dir {
 							Some(ref o) => o.display().to_string(),
@@ -133,8 +130,8 @@ impl Application for RenamePlusGui {
 								Some(ref s) => s,
 								None => "",
 							},
-							Message::PrefixChanged
-						),
+						)
+						.on_input(Message::PrefixChanged),
 						"Text to add before file names",
 						tooltip::Position::Right,
 					),
@@ -145,8 +142,8 @@ impl Application for RenamePlusGui {
 								Some(ref s) => s,
 								None => "",
 							},
-							Message::SuffixChanged
-						),
+						)
+						.on_input(Message::SuffixChanged),
 						"Text to add after file names",
 						tooltip::Position::Right,
 					),
@@ -181,9 +178,9 @@ impl Application for RenamePlusGui {
 					out
 				};
 				// Show overlay
-				icolumn![
+				col![
 					sets,
-					irow![
+					row![
 						button(text("Cancel")).on_press(Message::HideSetsSelect),
 						button("Save")
 					]

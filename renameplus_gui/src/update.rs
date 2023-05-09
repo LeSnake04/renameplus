@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
+use error_log::ErrorLogAnyhow;
 use iced::{
 	keyboard::{Event as KeyEvent, KeyCode},
 	window::Event as WinEvent,
@@ -8,7 +9,7 @@ use iced::{
 };
 use itertools::Itertools;
 use native_dialog::{FileDialog, MessageDialog, MessageType};
-use renameplus::{ErrorLogAnyhow, UsedReason};
+use renameplus::UsedReason;
 use snake_helper::{unwrap_or_print_err, unwrap_some_or};
 
 use crate::{FileItem, FileMessage, RenamePlusGui, ReplaceMessage, SetUiMessage};
@@ -50,7 +51,7 @@ impl RenamePlusGui {
 					.set_type(native_dialog::MessageType::Error)
 					.set_text(&format!("{e:#?}"))
 					.show_alert(),
-				return
+				{}
 			);
 		}
 	}
@@ -150,9 +151,9 @@ impl RenamePlusGui {
 		err_log: &mut ErrorLogAnyhow<()>,
 	) {
 		let set_i = self.sets[i].index;
-		let sets = self.data.config.sets.as_mut().expect("no set");
+		let sets = &mut self.data.config.sets;
 		let mut set = &mut sets[set_i];
-		let mut update = false;
+		let update = false;
 		let mut set_ui = &mut self.sets[i];
 		match msg {
 			SetUiMessage::Toggle(b) => {

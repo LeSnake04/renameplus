@@ -12,7 +12,7 @@ impl RenamePlusGui {
 			out.push_str("Please add least one path.\n");
 		}
 		if !self.changes {
-			out.push_str("No Changes Configured\n");
+			out.push_str("Nothing to Change\n");
 		}
 		out
 	}

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use iced::{
-	widget::{button, row as irow, text},
+	widget::{button, row, text},
 	Element,
 };
 use renameplus::rename::Rename;
@@ -47,7 +47,7 @@ impl FileItem {
 		}
 	}
 	pub fn view(&self) -> Element<FileMessage> {
-		irow![
+		row![
 			text(format!(
 				"{} \n-> {}",
 				self.path.display(),
