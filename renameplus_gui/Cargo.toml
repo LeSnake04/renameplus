@@ -1,5 +1,6 @@
 [package]
 name = "renameplus_gui"
+description = "Official iced Gui for renameplus"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,15 +11,15 @@ thiserror = "1.0"
 renameplus = {path = "..", version = "*"}
 native-dialog = "0.6"
 iced = { version = "0.9", features = ["default_system_font", "tokio"] }
-tokio = "1.27.0"
-anyhow = { version = "1.0.70", features = ["backtrace"] }
-flexi_logger = "0.25.3"
+tokio = "1.28.0"
+anyhow = { version = "1.0.71", features = ["backtrace"] }
+flexi_logger = "0.25.4"
 itertools = "0.10.5"
 snake_helper = "0.1.0"
 log = "0.4.17"
-clap = "4.2.2"
+clap = "4.2.7"
 figment = { version = "0.10.8", features = ["env", "toml"] }
-serde = { version = "1.0.160", features = ["derive"] }
-iced_native = "0.10.1"
-error_log = { version = "0.1.2", features = ["native-dialog"] }
+serde = { version = "1.0.162", features = ["derive"] }
+iced_native = "0.10.3"
+error_log = { git = "https://github.com/LeSnake04/error_log.git", branch = "dev", features = ["anyhow","native-dialog"] }
 # iced_aw = {git = "https://github.com/iced-rs/iced_aw", rev="193e3bd8e6de4d8ce14ac2f2767323574b8fc712"}
