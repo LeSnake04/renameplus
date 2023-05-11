@@ -5,7 +5,6 @@ use iced::{
 	Element, Length,
 };
 use renameplus::{ReplaceSetData, UsedReason};
-use snake_helper::unwrap_some_or;
 
 use crate::PresetDefault;
 
@@ -14,7 +13,9 @@ pub struct SetUi {
 	pub set: ReplaceSetData,
 	pub default: bool,
 	pub edit: bool,
-	pub index: usize,
+	pub name: String,
+	pub search_draft: Vec<String>,
+	pub replace_draft: String,
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +23,8 @@ pub enum SetUiMessage {
 	Active(bool),
 	ByDefault(bool),
 	Edit,
+	SaveDraft,
+	DiscardDraft,
 }
 
 impl Default for SetUi {
@@ -30,18 +33,22 @@ impl Default for SetUi {
 			set: ReplaceSetData::default(),
 			default: false,
 			edit: false,
-			index: 0,
+			name: "".to_string(),
+			search_draft: vec![],
+			replace_draft: "".to_string(),
 		}
 	}
 }
 
 impl SetUi {
-	pub fn new(data: &ReplaceSetData, index: usize) -> Self {
+	pub fn new(data: &ReplaceSetData, index: String) -> Self {
 		Self {
 			set: data.clone(),
 			default: data.used == Some(UsedReason::Default),
 			edit: false,
-			index,
+			name: index,
+			search_draft: vec![],
+			replace_draft: String::new(),
 		}
 	}
 	pub fn update(
@@ -67,14 +74,20 @@ impl SetUi {
 				false => *err_log += anyhow!("{} is not editable!", set.set.name),
 			},
 			SetUiMessage::ByDefault(b) => {
-				*set_default = Some(true);
+				*set_default = Some(b);
 			}
+			SetUiMessage::SaveDraft => {
+				self.set.set.search = self.search_draft.clone();
+				self.set.set.replace = self.replace_draft.clone();
+			}
+			SetUiMessage::DiscardDraft => todo!(),
 		}
 	}
 	pub fn view(&self) -> Element<SetUiMessage> {
-		let edit: Row<SetUiMessage, _> = match self.set.editable {
-			false => row![],
-			true => row![button("Edit").on_press(SetUiMessage::Edit)],
+		let edit: Row<SetUiMessage, _> = match (self.set.editable, self.edit) {
+			(false, _) => row![],
+			(true, false) => row![button("Edit").on_press(SetUiMessage::Edit)],
+			(true, true) => row![button("Save").on_press(SetUiMessage::SaveDraft)],
 		};
 		let set = &self.set;
 		row![
