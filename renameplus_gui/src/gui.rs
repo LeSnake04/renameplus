@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 pub use crate::update::Message;
 use crate::{FileItem, ReplaceItem, SetUi};
@@ -15,7 +15,7 @@ pub struct RenamePlusGui {
 	pub files: Vec<FileItem>,
 	pub hovered: Option<PathBuf>,
 	pub replace_ui: Vec<ReplaceItem>,
-	pub sets: Vec<SetUi>,
+	pub sets: HashMap<String, SetUi>,
 	pub new_set: SetUi,
 	pub sets_overlay: bool,
 }

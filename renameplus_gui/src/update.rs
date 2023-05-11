@@ -29,7 +29,7 @@ pub enum Message {
 	ReplaceMessage(usize, ReplaceMessage),
 	ShowSetsSelect,
 	HideSetsSelect,
-	SetMessage(usize, SetUiMessage),
+	SetMessage(String, SetUiMessage),
 	NewSetMessage(SetUiMessage),
 }
 impl RenamePlusGui {
@@ -68,7 +68,7 @@ impl RenamePlusGui {
 				key_code: KeyCode::Escape,
 				..
 			})) => self.sets_overlay = false,
-			Message::SetMessage(i, msg) => self.update_set(i, msg, &mut err_log),
+			Message::SetMessage(name, msg) => self.update_set(name, msg, &mut err_log),
 			Message::NewSetMessage(msg) => {
 				let mut err_log = ErrorLogAnyhow::new();
 				let mut update = false;
@@ -154,20 +154,22 @@ impl RenamePlusGui {
 	}
 	pub(super) fn update_set(
 		&mut self,
-		i: usize,
+		name: String,
 		msg: SetUiMessage,
 		err_log: &mut ErrorLogAnyhow<()>,
 	) {
-		let set_i = self.sets[i].index;
-		let mut set = || &mut self.data.config.sets[set_i];
+		// let set_name = self.sets.get(&name).name.clone();
+		let set = self.data.config.sets.get(&name).unwrap();
 		let mut update = false;
-		let mut set_ui = || &mut self.sets[i];
 		let mut set_default = None;
-		set_ui().update(msg, err_log, &mut update, &mut set_default);
+		self.sets
+			.get_mut(&name)
+			.unwrap()
+			.update(msg, err_log, &mut update, &mut set_default);
 		if let Some(state) = set_default {
-			let name = set().set.name.clone();
-			self.make_set_default(name, state);
-			set_ui().default = true;
+			let name = set.set.name.clone();
+			self.make_set_default(&name, state);
+			self.sets.get_mut(&name).unwrap().default = true;
 		}
 		if update {
 			self.reload_sets();

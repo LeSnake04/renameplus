@@ -26,7 +26,7 @@ pub struct Rename {
 	pub output_dir: Option<PathBuf>,
 	pub output_files: Option<Vec<PathBuf>>,
 	pub replace: Vec<(String, String)>,
-	pub replace_sets: Vec<usize>,
+	pub replace_sets: Vec<String>,
 	pub config: Config,
 }
 
@@ -88,8 +88,12 @@ impl Rename {
 		for (search, replace) in &self.replace {
 			do_replace(&mut new_name, search, replace)
 		}
-		for set_i in &self.replace_sets {
-			let set = &self.config.sets[*set_i];
+		for set_name in &self.replace_sets {
+			let set = &self
+				.config
+				.sets
+				.get(set_name)
+				.context(format!("Set {set_name} not found"))?;
 			for search in &set.set.search {
 				do_replace(&mut new_name, search, &set.set.replace)
 			}
@@ -127,25 +131,25 @@ impl Rename {
 		let mut history: Vec<RenameOut> = vec![];
 		let mut err = ErrorLogAnyhow::new();
 		if let Some(preview) = err.push_result(self.preview()) {
-		for (file, new_path) in preview {
-			let new_path = unwrap_some_or!(new_path, continue);
-			let curr_out = self.rename_file(&file, new_path);
-			match (curr_out, self.fragile, self.undo_on_err) {
-				// Cancel if error occured and --fragile set.
-				(Err(e), true, _) => {
-					try_add!(Err(e), err);
+			for (file, new_path) in preview {
+				let new_path = unwrap_some_or!(new_path, continue);
+				let curr_out = self.rename_file(&file, new_path);
+				match (curr_out, self.fragile, self.undo_on_err) {
+					// Cancel if error occured and --fragile set.
+					(Err(e), true, _) => {
+						try_add!(Err(e), err);
+					}
+					// Print error if --fragile not set.
+					(Err(e), false, _) => err += e,
+					// Push result to $history if moved and --und_on_err set.
+					(Ok(r), _, true) => {
+						r.new_path.is_some().then(|| history.push(r));
+					}
+					_ => (),
 				}
-				// Print error if --fragile not set.
-				(Err(e), false, _) => err += e,
-				// Push result to $history if moved and --und_on_err set.
-				(Ok(r), _, true) => {
-					r.new_path.is_some().then(|| history.push(r));
-				}
-				_ => (),
-			}
 			}
 		}
-			if self.undo_on_err && !err.entries().is_empty() {
+		if self.undo_on_err && !err.entries().is_empty() {
 			for entry in history {
 				let new_path = match entry.new_path.context("Path not set") {
 					Err(f) => {

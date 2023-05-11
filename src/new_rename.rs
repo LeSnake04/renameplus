@@ -15,7 +15,7 @@ impl Rename {
 			.try_get_many::<PathBuf>("output-files")
 			.context("failed to get argument \'output-files\'")?
 			.map(move |v| v.cloned().collect());
-		let replace_sets: Vec<usize> = {
+		let replace_sets: Vec<String> = {
 			let sets_opt: Option<Vec<_>> = m
 				.try_get_many::<String>("sets")
 				.context("failed to get argument \'sets\'")?
@@ -23,9 +23,9 @@ impl Rename {
 			let mut out = vec![];
 			if let Some(sets) = sets_opt {
 				for set in sets {
-					match config.sets.iter().position(|s| s.set.name == set) {
-						Some(i) => out.push(i),
-						None => Err(anyhow!("Set \"{set}\" not found"))?,
+					match config.sets.get(&set).is_some() {
+						true => out.push(set),
+						false => Err(anyhow!("Set \"{set}\" not found"))?,
 					}
 				}
 			}

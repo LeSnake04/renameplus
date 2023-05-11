@@ -10,8 +10,11 @@ impl RenamePlusGui {
 	pub fn view_overlay(&self) -> Element<'_, Message> {
 		let sets: Column<Message> = {
 			let mut out = Column::new();
-			for (i, set) in self.sets.iter().enumerate() {
-				out = out.push(set.view().map(move |msg| Message::SetMessage(i, msg)));
+			for (name, set) in self.sets.iter() {
+				out = out.push(
+					set.view()
+						.map(move |msg| Message::SetMessage(name.clone(), msg)),
+				);
 			}
 			out
 		};
@@ -19,7 +22,10 @@ impl RenamePlusGui {
 			text("Sets"),
 			col![
 				sets,
-				row![self.new_set.view().map(Message::NewSetMessage), button(text("+"))],
+				row![
+					self.new_set.view().map(Message::NewSetMessage),
+					button(text("+"))
+				],
 				row![
 					button(text("Cancel")).on_press(Message::HideSetsSelect),
 					button("Save")

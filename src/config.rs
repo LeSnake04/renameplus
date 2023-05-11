@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{Context, Result};
 use figment::{
@@ -13,7 +13,7 @@ use error_log::{try_add, ErrorLogAnyhow};
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Config {
 	pub default_sets: Option<Vec<String>>,
-	pub sets: Vec<ReplaceSetData>,
+	pub sets: HashMap<String, ReplaceSetData>,
 }
 
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq, PartialOrd, Ord)]
@@ -39,16 +39,38 @@ pub struct ReplaceSet {
 }
 
 impl Config {
-	fn builtin_sets() -> [ReplaceSet; 1] {
-		[ReplaceSet {
-			name: String::from("no_whitespaces"),
-			description: "replaces all whitespaces with underscores".to_string(),
-			search: vec![" ".to_string()],
-			replace: "_".to_string(),
-		}]
+	fn builtin_sets(&self) -> HashMap<String, ReplaceSetData> {
+		let mut out = HashMap::new();
+		let mut out_add = |name: &str, description: &str, search: Vec<String>, replace: &str| {
+			out.insert(
+				String::from(name),
+				ReplaceSetData {
+					set: ReplaceSet {
+						name: String::from(name),
+						description: String::from(description),
+						search,
+						replace: String::from(replace),
+					},
+					used: self.is_set_default(name),
+					editable: false,
+				},
+			);
+		};
+		out_add(
+			"no_whitespace",
+			"replaces all whitespaces with underscores",
+			vec![" ".to_string()],
+			"_",
+		);
+		out
 	}
 
-	fn find_sets(&self, out: &mut Vec<ReplaceSetData>, dir: PathBuf, editable: bool) -> Result<()> {
+	fn find_sets(
+		&self,
+		out: &mut HashMap<String, ReplaceSetData>,
+		dir: PathBuf,
+		editable: bool,
+	) -> Result<()> {
 		match dir.read_dir() {
 			Ok(g) => {
 				for file in g {
@@ -68,11 +90,14 @@ impl Config {
 						.with_context(|| {
 							format!("{}: Failed to parse toml", file.path().display())
 						})?;
-					out.push(ReplaceSetData {
-						used: self.is_set_default(&set.name),
-						set,
-						editable,
-					});
+					out.insert(
+						set.name.clone(),
+						ReplaceSetData {
+							used: self.is_set_default(&set.name),
+							set,
+							editable,
+						},
+					);
 				}
 				Ok(())
 			}
@@ -83,10 +108,13 @@ impl Config {
 		}
 	}
 	fn is_set_default(&self, name: &str) -> Option<UsedReason> {
-		self.sets
-			.iter()
-			.any(|s| s.set.name == name)
-			.then_some(UsedReason::Default)
+		match &self.default_sets {
+			Some(d) => d
+				.iter()
+				.any(|default| default == name)
+				.then_some(UsedReason::Default),
+			None => None,
+		}
 	}
 	pub fn read() -> ErrorLogAnyhow<Self> {
 		let mut err_log = ErrorLogAnyhow::new();
@@ -125,15 +153,8 @@ impl Config {
 					.context("Failed to parse config"),
 			)
 			.unwrap_or_default();
-		let sets: Vec<ReplaceSetData> = {
-			let mut out: Vec<ReplaceSetData> = Self::builtin_sets()
-				.into_iter()
-				.map(|set| ReplaceSetData {
-					used: conf.is_set_default(&set.name),
-					set,
-					editable: false,
-				})
-				.collect();
+		let sets: HashMap<String, ReplaceSetData> = {
+			let mut out = Self::builtin_sets(&conf);
 			err_log += conf.find_sets(&mut out, global_sets_dir, false);
 			err_log += conf.find_sets(&mut out, user_sets_dir, true);
 			out

@@ -1,5 +1,6 @@
 #![warn(clippy::all)]
 #![warn(clippy::unwrap_used)]
+#![warn(clippy::todo)]
 
 use anyhow::{Context, Result};
 use flexi_logger::Logger;

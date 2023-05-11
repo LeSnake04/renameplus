@@ -7,6 +7,21 @@ use native_dialog::{FileDialog, MessageDialog};
 use crate::{RenamePlusGui, ReplaceItem, SetUi};
 
 impl RenamePlusGui {
+	pub(super) fn any_changes(&mut self) {
+		self.changes = self
+			.data
+			.prefix
+			.as_ref()
+			.map(|p| !p.is_empty())
+			.unwrap_or(false)
+			|| self
+				.data
+				.suffix
+				.as_ref()
+				.map(|s| !s.is_empty())
+				.unwrap_or(false)
+			|| self.data.replace.iter().any(|r| !r.0.is_empty());
+	}
 	pub(super) fn folder_ask(&mut self, new_files: &mut Vec<PathBuf>) {
 		match FileDialog::new().show_open_multiple_file() {
 			Ok(mut new) => {
@@ -35,32 +50,18 @@ impl RenamePlusGui {
 		// let last = self.data.replace.last().unwrap();
 		self.replace_ui.push(ReplaceItem::new("", ""));
 	}
-	pub(super) fn any_changes(&mut self) {
-		self.changes = self
-			.data
-			.prefix
-			.as_ref()
-			.map(|p| !p.is_empty())
-			.unwrap_or(false)
-			|| self
-				.data
-				.suffix
-				.as_ref()
-				.map(|s| !s.is_empty())
-				.unwrap_or(false)
-			|| self.data.replace.iter().any(|r| !r.0.is_empty());
+	pub(super) fn reload_sets(&mut self) {
+		self.sets.clear();
+		for (name, set) in self.data.config.sets.iter() {
+			self.sets
+				.insert(name.clone(), SetUi::new(set, name.to_string()));
+		}
 	}
 	pub(super) fn update_previews(&mut self) -> Result<()> {
 		for file in self.files.iter_mut() {
 			file.update_preview(&self.data)?
 		}
 		Ok(())
-	}
-	pub(super) fn reload_sets(&mut self) {
-		self.sets.clear();
-		for (i, set) in self.data.config.sets.iter().enumerate() {
-			self.sets.push(SetUi::new(set, i));
-		}
 	}
 }
 
