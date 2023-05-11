@@ -1,14 +1,11 @@
 use std::path::PathBuf;
 
 pub use crate::update::Message;
-use crate::{FileItem, PresetDefault, ReplaceItem, SetUi};
-use iced::{
-	executor,
-	widget::{button, column as col, row, scrollable, text, text_input, toggler, tooltip, Column},
-	Alignment, Application, Color, Command, Theme,
-};
+use crate::{FileItem, ReplaceItem, SetUi};
+use iced::{executor, widget::scrollable, Application, Command, Theme};
 
 use error_log::{ErrorLogAnyhow, FormatMode};
+use iced_aw::Modal;
 use renameplus::{rename::Rename, Config};
 
 #[derive(Debug, Default)]
@@ -19,6 +16,7 @@ pub struct RenamePlusGui {
 	pub hovered: Option<PathBuf>,
 	pub replace_ui: Vec<ReplaceItem>,
 	pub sets: Vec<SetUi>,
+	pub new_set: SetUi,
 	pub sets_overlay: bool,
 }
 
@@ -51,14 +49,6 @@ impl Application for RenamePlusGui {
 		out.reload_sets();
 		(out, Command::none())
 	}
-	fn subscription(&self) -> iced::Subscription<Self::Message> {
-		iced::subscription::events().map(Message::Event)
-	}
-
-	fn theme(&self) -> Theme {
-		Theme::Dark
-	}
-
 	fn title(&self) -> String {
 		"RenamePlus".to_string()
 	}
@@ -68,131 +58,18 @@ impl Application for RenamePlusGui {
 		Command::none()
 	}
 
-	fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-		scrollable(
-			if !self.sets_overlay {
-				let (validate_msgs, run_button) = {
-					let mut out = (
-						text("Ready".to_string()).style(Color::from_rgb8(20, 200, 0)),
-						button(text("Run")),
-					);
-					match self.validate() {
-						v if !v.is_empty() => out.0 = text(v).style(Color::from_rgb8(170, 80, 0)),
-						_ => out.1 = out.1.on_press(Message::Run),
-					}
-					out
-				};
-				let files: Column<Message> = {
-					let mut out = Column::new();
-					for (i, file) in self.files.iter().enumerate() {
-						out = out.push(file.view().map(move |msg| Message::FileMessage(i, msg)));
-					}
-					out
-				};
-				let replace: Column<Message> = {
-					let mut out = Column::new();
-					for (i, rename) in self.replace_ui.iter().enumerate() {
-						out = out.push(
-							rename
-								.view()
-								.map(move |msg| Message::ReplaceMessage(i, msg)),
-						);
-					}
-					out
-				};
-				let drop_hint: String = match self.hovered {
-					Some(ref f) => format!("Drop file to add path(s): {}", f.display()),
-					None => String::from("\n"),
-				};
-				// let modal_state = modal::State::new(());
-				// overlay::;
-
-				// Modal::new(true, Text::new("underlay"), || {
-				// icolumn![text("overlay")].into()
-				// })
-
-				col![
-					button("Add Files").on_press(Message::AddPaths),
-					row![
-						text(drop_hint),
-						text(match self.data.output_dir {
-							Some(ref o) => o.display().to_string(),
-							None => "<Using File source path>".to_string(),
-						}),
-						button(text("Set output dir")).on_press(Message::SelectOutputDir),
-						button(text("X")).on_press(Message::RemoveOutputDir)
-					]
-					.preset_default(),
-					tooltip(
-						text_input(
-							"PREFIX",
-							match self.data.prefix {
-								Some(ref s) => s,
-								None => "",
-							},
-						)
-						.on_input(Message::PrefixChanged),
-						"Text to add before file names",
-						tooltip::Position::Right,
-					),
-					tooltip(
-						text_input(
-							"SUFFIX",
-							match self.data.suffix {
-								Some(ref s) => s,
-								None => "",
-							},
-						)
-						.on_input(Message::SuffixChanged),
-						"Text to add after file names",
-						tooltip::Position::Right,
-					),
-					toggler(
-						"Allow directories".to_string(),
-						self.data.dirs,
-						Message::ToggleDirs,
-					),
-					toggler(
-						"Copy instead of renaming".to_string(),
-						self.data.copy,
-						Message::ToggleCopy
-					),
-					files,
-					replace,
-					button(text("Add replace filter")).on_press(Message::AddReplace),
-					button(text("Select Sets")).on_press(Message::ShowSetsSelect),
-					run_button,
-					validate_msgs,
-					#[cfg(debug_assertions)]
-					text(format!("{self:#?}")),
-					// #[cfg(all(not(windows), not(unix)))]
-					// text("Replace not supported on your OS"),
-					// #[cfg(all(windows, unix))]
-				]
-			} else {
-				let sets: Column<Message> = {
-					let mut out = Column::new();
-					for (i, set) in self.sets.iter().enumerate() {
-						out = out.push(set.view().map(move |msg| Message::SetMessage(i, msg)));
-					}
-					out
-				};
-				// Show overlay
-				col![
-					sets,
-					row![
-						button(text("Cancel")).on_press(Message::HideSetsSelect),
-						button("Save")
-					]
-					.preset_default(),
-					#[cfg(debug_assertions)]
-					text(format!("{self:#?}")),
-				]
-			}
-			.align_items(Alignment::Center)
-			.spacing(20)
-			.padding(15),
-		)
+	fn view(&self) -> iced::Element<'_, self::Message, iced::Renderer<Self::Theme>> {
+		scrollable(Modal::new(self.sets_overlay, self.view_underlay(), || {
+			self.view_overlay()
+		}))
 		.into()
+	}
+
+	fn theme(&self) -> Theme {
+		Theme::Dark
+	}
+
+	fn subscription(&self) -> iced::Subscription<Self::Message> {
+		iced::subscription::events().map(Message::Event)
 	}
 }
