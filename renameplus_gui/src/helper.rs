@@ -64,12 +64,12 @@ impl RenamePlusGui {
 	}
 }
 
-pub fn error_log_dialog(e: String, title: impl Into<String> + 'static) {
-	let title = title.into();
-	MessageDialog::new()
-		.set_type(native_dialog::MessageType::Error)
-		.set_title(&title)
-		.set_text(&e)
-		.show_alert()
-		.expect("Failed to show error dialog");
-}
+// pub fn error_log_dialog(e: String, title: impl Into<String> + 'static) {
+// 	let title = title.into();
+// 	MessageDialog::new()
+// 		.set_type(native_dialog::MessageType::Error)
+// 		.set_title(&title)
+// 		.set_text(&e)
+// 		.show_alert()
+// 		.expect("Failed to show error dialog");
+// }

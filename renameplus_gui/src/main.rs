@@ -6,10 +6,11 @@ use flexi_logger::Logger;
 use iced::{Application, Settings};
 use log::warn;
 
-pub use iced::widget::{column as icolumn, row as irow};
+pub use iced::widget::column as col;
 
 pub use crate::gui::RenamePlusGui;
 pub use crate::presets::*;
+pub use crate::update::*;
 pub use crate::widgets::*;
 
 pub mod gui;
@@ -17,6 +18,7 @@ pub mod helper;
 pub mod presets;
 pub mod run;
 pub mod update;
+mod view;
 pub mod widgets;
 
 fn main() -> Result<()> {

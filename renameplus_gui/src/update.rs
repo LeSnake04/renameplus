@@ -9,7 +9,6 @@ use iced::{
 };
 use itertools::Itertools;
 use native_dialog::{FileDialog, MessageDialog, MessageType};
-use renameplus::UsedReason;
 use snake_helper::{unwrap_or_print_err, unwrap_some_or};
 
 use crate::{FileItem, FileMessage, RenamePlusGui, ReplaceMessage, SetUiMessage};
@@ -31,6 +30,7 @@ pub enum Message {
 	ShowSetsSelect,
 	HideSetsSelect,
 	SetMessage(usize, SetUiMessage),
+	NewSetMessage(SetUiMessage),
 }
 impl RenamePlusGui {
 	pub(super) fn do_update(&mut self, message: Message) {
@@ -69,6 +69,14 @@ impl RenamePlusGui {
 				..
 			})) => self.sets_overlay = false,
 			Message::SetMessage(i, msg) => self.update_set(i, msg, &mut err_log),
+			Message::NewSetMessage(msg) => {
+				let mut err_log = ErrorLogAnyhow::new();
+				let mut update = false;
+				let mut set_default = None;
+				self.new_set
+					.update(msg, &mut err_log, &mut update, &mut set_default);
+				err_log.display_ok();
+			}
 			Message::Event(Event::Window(WinEvent::FileDropped(p))) => {
 				new_files.push(p);
 			}
@@ -151,42 +159,33 @@ impl RenamePlusGui {
 		err_log: &mut ErrorLogAnyhow<()>,
 	) {
 		let set_i = self.sets[i].index;
-		let sets = &mut self.data.config.sets;
-		let mut set = &mut sets[set_i];
-		let update = false;
-		let mut set_ui = &mut self.sets[i];
-		match msg {
-			SetUiMessage::Toggle(b) => {
-				let used = b.then_some(UsedReason::Manual);
-				set.used = used.clone();
-				set_ui.set.used = used;
-			}
-			SetUiMessage::Edit => match set.editable {
-				true => {
-					set_ui.edit = true;
-					todo!("Edit set");
-				}
-				false => *err_log += anyhow!("{} is not editable!", set.set.name),
-			},
-			SetUiMessage::ByDefault(b) => 'a: {
-				dbg!(b);
-				let default_sets =
-					unwrap_some_or!(self.data.config.default_sets.as_mut(), break 'a);
-				let default_set_i = default_sets
-					.iter()
-					.position(|s| s == &set.set.name)
-					.expect("Not found in default set");
-				set_ui.default = b;
-				match b {
-					true => default_sets.push(set.set.name.clone()),
-					false => {
-						default_sets.remove(default_set_i);
-					}
-				}
-			}
+		let mut set = || &mut self.data.config.sets[set_i];
+		let mut update = false;
+		let mut set_ui = || &mut self.sets[i];
+		let mut set_default = None;
+		set_ui().update(msg, err_log, &mut update, &mut set_default);
+		if let Some(state) = set_default {
+			let name = set().set.name.clone();
+			self.make_set_default(name, state);
+			set_ui().default = true;
 		}
 		if update {
 			self.reload_sets();
+		}
+	}
+	fn make_set_default(&mut self, set: impl AsRef<str>, state: bool) {
+		let set = set.as_ref();
+		let default_sets = unwrap_some_or!(self.data.config.default_sets.as_mut(), return);
+		let default_set_i = default_sets
+			.iter()
+			.position(|s| s == set)
+			.expect("Not found in default set");
+
+		match state {
+			true => default_sets.push(set.to_string()),
+			false => {
+				default_sets.remove(default_set_i);
+			}
 		}
 	}
 }

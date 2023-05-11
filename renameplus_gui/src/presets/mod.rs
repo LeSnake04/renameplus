@@ -1,3 +1,4 @@
+mod col;
 mod row;
 
 pub trait PresetDefault {
